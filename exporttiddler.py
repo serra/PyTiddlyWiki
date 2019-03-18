@@ -5,21 +5,28 @@ import pypandoc
 
 
 class ExportTiddlerMixin:
-    def export_header(self, format='md', encoding='utf-8'):
+    def export_header(self,
+                      format='md',
+                      encoding='utf-8',
+                      export_meta_data=False):
         '''export the tiddler head (containing title, creation date, and tags).
         format can be any valid pandoc format specifier.
         '''
-        header = "# {}\n" \
-                 "__created__: {}, " \
-                 "__last modified__: {}\n\n" \
-                 "__keywords__: {}"
-        result = header.format(self.title, self.created, self.modified, self.tags)
+        header = "# {}\n"
+
+        if (export_meta_data):
+            header += "__created__: {}, " \
+                      "__last modified__: {}\n\n" \
+                      "__keywords__: {}" \
+                      "\n\n---\n\n"
+
+        result = header.format(self.title, self.created, self.modified,
+                               self.tags)
 
         if encoding != 'utf-8':
             result = result.encode(encoding, errors='ignore').decode(encoding)
 
         return pypandoc.convert_text(result, format, format='md')
-
 
     def export_content(self, format='md', encoding='utf-8'):
         '''export the tiddler content.
@@ -37,17 +44,18 @@ class ExportTiddlerMixin:
             content = self.content
 
         if encoding != 'utf-8':
-            content = content.encode(encoding, errors='ignore').decode(encoding)
+            content = content.encode(
+                encoding, errors='ignore').decode(encoding)
 
         return pypandoc.convert_text(content, format, format='md')
 
-
-    def export(self, format='md', encoding='utf-8'):
+    def export(self, format='md', encoding='utf-8', export_meta_data=False):
         '''export the tiddler to a string.
         format can be any valid pandoc format specifier.
         '''
-        result = self.export_header(encoding=encoding)
-        result += '\n\n---\n\n'
+        result = self.export_header(
+            encoding=encoding, export_meta_data=export_meta_data)
+
         result += self.export_content(encoding=encoding)
 
         try:
@@ -56,7 +64,6 @@ class ExportTiddlerMixin:
             print(error)
             result = None
         return result
-
 
     def export_to_file(self, path, format=None, encoding='utf-8'):
         '''export the tiddler to a file at dir <path>.
@@ -82,8 +89,8 @@ class ExportTiddlerMixin:
         md = self.export(encoding=encoding)
         pypandoc.convert_text(md, format, format='md', outputfile=path)
 
-
     def open_in_browser(self, format='html'):
-        with tempfile.NamedTemporaryFile('w', suffix='.' + format, delete=False) as fh:
+        with tempfile.NamedTemporaryFile(
+                'w', suffix='.' + format, delete=False) as fh:
             self.export_to_file(fh.name, format=format)
         webbrowser.get(using='chrome').open('file://' + fh.name, new=1)
